@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 8582568684670444467}
   - component: {fileID: 7759531174003456412}
   - component: {fileID: 301747108068274347}
+  - component: {fileID: 4694323034191659622}
   m_Layer: 0
   m_Name: Character
   m_TagString: Untagged
@@ -211,6 +212,11 @@ MonoBehaviour:
   _groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  _hurtBox: {fileID: 0}
+  _damage: 10
+  _knockbackForce: 8
+  _hitStunDuration: 0.25
+  _attackDuration: 0.3
 --- !u!114 &7759531174003456412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,6 +253,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4694323034191659622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6938903618986165838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0605b556294cabe4fbc00efbdaf7b174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _maxHealth: 100
 --- !u!1 &7576002131729056716
 GameObject:
   m_ObjectHideFlags: 0

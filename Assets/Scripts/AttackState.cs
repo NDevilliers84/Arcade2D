@@ -7,12 +7,13 @@ public class AttackState : State {
         base.OnEnter();
         
         InputController.IsAttacking.Stop();
-        Animator.speed = 1/ Duration;
+        Animator.speed = 1 / Duration;
         Animator.SetBool("IsAttacking", true);
     }
 
     public override void OnExit() {
         base.OnExit();
+
         Animator.speed = 1;
         Animator.SetBool("IsAttacking", false);
     }

@@ -2,8 +2,8 @@ using UnityEngine;
 
 public struct Trigger
 {
-    private float _endTime;
-    private const float Duration = 0.4f;
+    [SerializeField] private float _endTime;
+    private const float Duration = 0.3f;
 
     public bool Value => Time.time < _endTime;
 
@@ -16,5 +16,6 @@ public struct Trigger
     {
         _endTime = Time.time;
     }
-    
+
+
 }

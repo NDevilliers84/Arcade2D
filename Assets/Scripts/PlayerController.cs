@@ -3,25 +3,35 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
 
-   [SerializeField] private float _speed;
+    [SerializeField] private float _speed;
     [SerializeField] private float _airControl;
     [SerializeField] private float _jumpForce;
     [SerializeField] private float _groundCheckDistance;
     [SerializeField] private LayerMask _groundLayer;
     [SerializeField] private PolygonCollider2D _hurtBox;
-    
+    [SerializeField] private int _damage = 10;
+    [SerializeField] private float _knockbackForce = 8f;
+    [SerializeField] private float _hitStunDuration = 0.25f;
+    [SerializeField] private float _attackDuration = 0.3f;
+
     private Rigidbody2D _rigidbody2D;
     private SpriteRenderer _spriteRenderer;
     private State _currentState;
     private InputController _inputController;
+    private Health _health;
+    private Trigger _invincible;
     private Sprite _lastSprite;
+    private bool _hurtBoxActive;
     private readonly List<Vector2> _points = new();
-    
+
     public Rigidbody2D Rigidbody2D => _rigidbody2D;
     public SpriteRenderer SpriteRenderer => _spriteRenderer;
     public float Speed => _speed;
     public float JumpForce => _jumpForce;
     public float AirControl => _airControl;
+    public int Damage => _damage;
+    public float KnockbackForce => _knockbackForce;
+    public Vector2 KnockbackDirection { get; private set; }
     public bool IsGrounded {
         get {
             RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, _groundCheckDistance, _groundLayer);
@@ -33,14 +43,14 @@ public class PlayerController : MonoBehaviour {
         _rigidbody2D = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _inputController = GetComponent<InputController>();
-        
+        _health = GetComponent<Health>();
+
         SwitchState(new MoveState(gameObject));
     }
 
     private void Update() {
         _currentState.OnUpdate();
-        
-        // Transitions
+
         if (_currentState is MoveState && _inputController.IsJumping && IsGrounded) {
             SwitchState(new JumpState(gameObject));
         }
@@ -50,21 +60,45 @@ public class PlayerController : MonoBehaviour {
         }
 
         if (_currentState is MoveState && _inputController.IsAttacking.Value) {
-            SwitchState(new AttackState(gameObject, 0.5f));
+            SwitchState(new AttackState(gameObject, _attackDuration));
         }
 
         if (_currentState is AttackState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));
         }
+
+        if (_currentState is HitState { IsFinished: true }) {
+            SwitchState(new MoveState(gameObject));
+        }
     }
-    
+
     private void SwitchState(State state) {
         _currentState?.OnExit();
         _currentState = state;
         _currentState?.OnEnter();
     }
 
-    private bool _hurtBoxActive;
+    private void OnTriggerEnter2D(Collider2D other) {
+        if (!other.CompareTag("HurtBox")) return;
+        if (_invincible.Value || _currentState is DeadState) return;
+
+        PlayerController attacker = other.GetComponentInParent<PlayerController>();
+        if (attacker == null || attacker == this) return;
+
+        TakeHit(attacker);
+    }
+
+    private void TakeHit(PlayerController attacker) {
+        _invincible.Launch();
+
+        float side = Mathf.Sign(transform.position.x - attacker.transform.position.x);
+        KnockbackDirection = new Vector2(side, 0.4f).normalized;
+
+        bool isDead = _health.TakeDamage(attacker.Damage);
+
+        if (isDead) SwitchState(new DeadState(gameObject));
+        else SwitchState(new HitState(gameObject, _hitStunDuration));
+    }
 
     public void OnAttackActive() {
         _hurtBoxActive = true;
@@ -79,7 +113,7 @@ public class PlayerController : MonoBehaviour {
 
     private void LateUpdate() {
         if (!_hurtBoxActive) return;
-        
+
         Sprite sprite = _spriteRenderer.sprite;
         if (sprite == _lastSprite) return;
         _lastSprite = sprite;
@@ -94,7 +128,7 @@ public class PlayerController : MonoBehaviour {
                 for (int p = 0; p < _points.Count; p++)
                     _points[p] = new Vector2(-_points[p].x, _points[p].y);
 
-            _hurtBox.SetPath(i,_points);
+            _hurtBox.SetPath(i, _points);
         }
     }
 

@@ -21,7 +21,6 @@ public abstract class State {
     }
 
     public virtual void OnUpdate() {
-        // Debug.Log($"{GetType()} with {_timer}");
         if (Duration > 0f) _timer -= Time.deltaTime;
     }
     public virtual void OnExit() {}

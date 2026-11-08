@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 130584877}
   - component: {fileID: 130584876}
   - component: {fileID: 130584878}
-  m_Layer: 6
+  m_Layer: 3
   m_Name: Tilemap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3373,7 +3373,7 @@ GameObject:
   m_Component:
   - component: {fileID: 725897201}
   - component: {fileID: 725897200}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Grid
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3465,8 +3465,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8582568684670444467, guid: 299f1f66b96c5ce4d90e079ed29d8063, type: 3}
+      propertyPath: _airControl
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582568684670444467, guid: 299f1f66b96c5ce4d90e079ed29d8063, type: 3}
       propertyPath: _groundLayer.m_Bits
-      value: 0
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8582568684670444467, guid: 299f1f66b96c5ce4d90e079ed29d8063, type: 3}
+      propertyPath: _groundCheckDistance
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

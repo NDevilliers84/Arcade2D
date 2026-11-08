@@ -211,7 +211,7 @@ MonoBehaviour:
   _groundCheckDistance: 1.5
   _groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   _hurtBox: {fileID: 0}
   _damage: 10
   _knockbackForce: 8

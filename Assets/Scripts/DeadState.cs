@@ -7,6 +7,7 @@ public class DeadState : State {
         base.OnEnter();
 
         PlayerController.OnAttackFinished();
+        PlayerController.OnBlockFinished();
         PlayerController.Rigidbody2D.linearVelocity = Vector2.zero;
 
         Animator.SetBool("IsDead", true);

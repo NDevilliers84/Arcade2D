@@ -19,8 +19,6 @@ public class GameManager : MonoBehaviour {
     private void OnPlayerDied(Health loser) {
         if (_isOver) return;
         _isOver = true;
-
-        Debug.Log(loser.name + " a perdu");
         Invoke(nameof(Restart), _restartDelay);
     }
 

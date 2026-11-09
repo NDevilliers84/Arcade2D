@@ -7,7 +7,6 @@ public class HitState : State {
 
     public override void OnEnter() {
         base.OnEnter();
-
         PlayerController.OnAttackFinished();
 
         _baseColor = PlayerController.SpriteRenderer.color;

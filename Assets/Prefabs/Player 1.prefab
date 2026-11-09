@@ -39,7 +39,7 @@ PolygonCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1235991358729414604}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 4694323034191659622}
   - component: {fileID: 3498482380211694636}
   m_Layer: 0
-  m_Name: Character
+  m_Name: Player 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -269,11 +269,17 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   _hurtBox: {fileID: 3426653826853453982}
-  _blockBox: {fileID: 0}
-  _damage: 10
+  _blockBox: {fileID: 5339722983629229827}
+  _comboActions:
+  - {fileID: 11400000, guid: 93f9ec25657edb24e81ef4d55fc44a9c, type: 2}
+  - {fileID: 11400000, guid: fff11f9f27745d9449a7640432e48079, type: 2}
+  - {fileID: 11400000, guid: 449b44d4175142a4d80e820999fb488a, type: 2}
+  _comboResetTime: 0.6
   _knockbackForce: 8
   _hitStunDuration: 0.25
-  _attackDuration: 0.3
+  _blockDuration: 0.6
+  _blockCooldown: 1
+  _blockPushback: 4
 --- !u!114 &7759531174003456412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -349,7 +355,7 @@ MonoBehaviour:
       m_Calls: []
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 1
-  m_DefaultControlScheme: 
+  m_DefaultControlScheme: Keyboard&Mouse
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
@@ -493,7 +499,7 @@ GameObject:
   - component: {fileID: 3426653826853453982}
   m_Layer: 0
   m_Name: HurtBox
-  m_TagString: Untagged
+  m_TagString: HurtBox
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

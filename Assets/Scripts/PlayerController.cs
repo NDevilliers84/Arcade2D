@@ -2,36 +2,45 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
-
-    [SerializeField] private float _speed;
+    
+     [SerializeField] private float _speed;
     [SerializeField] private float _airControl;
     [SerializeField] private float _jumpForce;
     [SerializeField] private float _groundCheckDistance;
     [SerializeField] private LayerMask _groundLayer;
     [SerializeField] private PolygonCollider2D _hurtBox;
     [SerializeField] private PolygonCollider2D _blockBox;
-    [SerializeField] private int _damage = 10;
+    [SerializeField] private List<GameplayAction> _comboActions;
+    [SerializeField] private float _comboResetTime = 0.6f;
     [SerializeField] private float _knockbackForce = 8f;
     [SerializeField] private float _hitStunDuration = 0.25f;
-    [SerializeField] private float _attackDuration = 0.3f;
-    
+    [SerializeField] private float _blockDuration = 0.6f;
+    [SerializeField] private float _blockCooldown = 1f;
+    [SerializeField] private float _blockPushback = 4f;
+ 
     private Rigidbody2D _rigidbody2D;
     private SpriteRenderer _spriteRenderer;
     private State _currentState;
     private InputController _inputController;
     private Health _health;
     private Trigger _invincible;
-    private Sprite _lastSprite;
+    private Sprite _lastHurtSprite;
+    private Sprite _lastBlockSprite;
     private bool _hurtBoxActive;
     private bool _blockBoxActive;
+    private float _nextBlockTime;
+    private int _comboIndex;
+    private float _lastAttackEndTime;
+    private float _nextAttackTime;
+    private GameplayAction _currentAction;
     private readonly List<Vector2> _points = new();
-    
+ 
     public Rigidbody2D Rigidbody2D => _rigidbody2D;
     public SpriteRenderer SpriteRenderer => _spriteRenderer;
     public float Speed => _speed;
     public float JumpForce => _jumpForce;
     public float AirControl => _airControl;
-    public int Damage => _damage;
+    public int Damage => _currentAction != null ? _currentAction.Damage : 0;
     public float KnockbackForce => _knockbackForce;
     public Vector2 KnockbackDirection { get; private set; }
     public bool IsGrounded {
@@ -40,117 +49,151 @@ public class PlayerController : MonoBehaviour {
             return hit.collider != null;
         }
     }
-    
+ 
     private void Awake() {
         _rigidbody2D = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _inputController = GetComponent<InputController>();
         _health = GetComponent<Health>();
-    
+ 
+        _hurtBox.enabled = false;
+        _blockBox.enabled = false;
+ 
         SwitchState(new MoveState(gameObject));
     }
-    
+ 
     private void Update() {
         _currentState.OnUpdate();
-    
+ 
         if (_currentState is MoveState && _inputController.IsJumping && IsGrounded) {
             SwitchState(new JumpState(gameObject));
         }
-    
+ 
         if (_currentState is JumpState && !_inputController.IsJumping && IsGrounded) {
             SwitchState(new MoveState(gameObject));
         }
-    
-        if (_currentState is MoveState && _inputController.IsAttacking.Value) {
-            SwitchState(new AttackState(gameObject, _attackDuration));
+ 
+        if (_currentState is MoveState && _inputController.IsBlocking.Value && Time.time >= _nextBlockTime) {
+            _nextBlockTime = Time.time + _blockDuration + _blockCooldown;
+            SwitchState(new BlockState(gameObject, _blockDuration));
         }
-    
+ 
+        if (_currentState is MoveState && _inputController.IsAttacking.Value && _comboActions.Count > 0
+            && Time.time >= _nextAttackTime) {
+            SwitchState(new AttackState(gameObject, NextComboAction()));
+        }
+ 
         if (_currentState is AttackState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));
         }
-    
+ 
         if (_currentState is HitState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));
         }
-
-        if (_currentState is BlockState { IsFinished: true })
-        {
+ 
+        if (_currentState is BlockState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));
         }
     }
-    
+ 
     private void SwitchState(State state) {
         _currentState?.OnExit();
         _currentState = state;
         _currentState?.OnEnter();
     }
-    
+ 
     private void OnTriggerEnter2D(Collider2D other) {
         if (!other.CompareTag("HurtBox")) return;
         if (_invincible.Value || _currentState is DeadState) return;
-    
+ 
         PlayerController attacker = other.GetComponentInParent<PlayerController>();
         if (attacker == null || attacker == this) return;
-    
-        TakeHit(attacker);
+ 
+        TakeHit(attacker, other);
     }
-    
-    private void TakeHit(PlayerController attacker) {
+ 
+    private void TakeHit(PlayerController attacker, Collider2D attackerHurtBox) {
         _invincible.Launch();
-    
+ 
         float side = Mathf.Sign(transform.position.x - attacker.transform.position.x);
+ 
+        if (IsBlocking(attackerHurtBox)) {
+            _rigidbody2D.linearVelocity = new Vector2(side * _blockPushback, _rigidbody2D.linearVelocity.y);
+            return;
+        }
+ 
         KnockbackDirection = new Vector2(side, 0.4f).normalized;
-    
+ 
         bool isDead = _health.TakeDamage(attacker.Damage);
-    
+ 
         if (isDead) SwitchState(new DeadState(gameObject));
         else SwitchState(new HitState(gameObject, _hitStunDuration));
     }
-    
+ 
+    private bool IsBlocking(Collider2D attackerHurtBox) {
+        if (_currentState is not BlockState || !_blockBox.enabled || _blockBox.pathCount == 0) return false;
+ 
+        ColliderDistance2D distance = _blockBox.Distance(attackerHurtBox);
+        return distance.isValid && distance.isOverlapped;
+    }
+ 
+    private GameplayAction NextComboAction() {
+        if (Time.time - _lastAttackEndTime > _comboResetTime) _comboIndex = 0;
+ 
+        _currentAction = _comboActions[_comboIndex];
+        _comboIndex = (_comboIndex + 1) % _comboActions.Count;
+ 
+        return _currentAction;
+    }
+ 
+    public void OnComboActionFinished() {
+        _lastAttackEndTime = Time.time;
+        _nextAttackTime = Time.time + _currentAction.Recovery;
+    }
+ 
     public void OnAttackActive() {
         _hurtBoxActive = true;
-        _lastSprite = null;
+        _lastHurtSprite = null;
         _hurtBox.enabled = true;
     }
-    
+ 
     public void OnAttackFinished() {
         _hurtBoxActive = false;
         _hurtBox.enabled = false;
     }
-
-    public void OnBlockActive()
-    {
+ 
+    public void OnBlockActive() {
         _blockBoxActive = true;
-        _lastSprite = null;
-        _blockBox.enabled = false;
-    }
-    
-    public void OnBlockFinished()
-    {
-        _blockBoxActive = false;
-        _lastSprite = null;
+        _lastBlockSprite = null;
         _blockBox.enabled = true;
     }
-    
+ 
+    public void OnBlockFinished() {
+        _blockBoxActive = false;
+        _blockBox.enabled = false;
+    }
+ 
     private void LateUpdate() {
-        if (!_hurtBoxActive) return;
-    
+        if (_hurtBoxActive) CopyShape(_hurtBox, ref _lastHurtSprite);
+        if (_blockBoxActive) CopyShape(_blockBox, ref _lastBlockSprite);
+    }
+ 
+    private void CopyShape(PolygonCollider2D box, ref Sprite lastSprite) {
         Sprite sprite = _spriteRenderer.sprite;
-        if (sprite == _lastSprite) return;
-        _lastSprite = sprite;
-    
+        if (sprite == lastSprite) return;
+        lastSprite = sprite;
+ 
         int shapeCount = sprite != null ? sprite.GetPhysicsShapeCount() : 0;
-        _hurtBox.pathCount = shapeCount;
-    
+        box.pathCount = shapeCount;
+ 
         for (int i = 0; i < shapeCount; i++) {
             sprite.GetPhysicsShape(i, _points);
-    
+ 
             if (_spriteRenderer.flipX)
                 for (int p = 0; p < _points.Count; p++)
                     _points[p] = new Vector2(-_points[p].x, _points[p].y);
-    
-            _hurtBox.SetPath(i, _points);
+ 
+            box.SetPath(i, _points);
         }
     }
-
 }

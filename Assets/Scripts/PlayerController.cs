@@ -11,9 +11,11 @@ public class PlayerController : MonoBehaviour {
     [SerializeField] private PolygonCollider2D _hurtBox;
     [SerializeField] private PolygonCollider2D _blockBox;
     [SerializeField] private List<GameplayAction> _comboActions;
-    [SerializeField] private float _comboResetTime = 0.6f;
+    [SerializeField] private List<GameplayAction> _punchActions;
+    [SerializeField] private List<GameplayAction> _kickActions;
     [SerializeField] private float _knockbackForce = 8f;
     [SerializeField] private float _hitStunDuration = 0.25f;
+    [SerializeField] private float _landDuration = 0.1f;
     [SerializeField] private float _blockDuration = 0.6f;
     [SerializeField] private float _blockCooldown = 1f;
     [SerializeField] private float _blockPushback = 4f;
@@ -23,15 +25,13 @@ public class PlayerController : MonoBehaviour {
     private State _currentState;
     private InputController _inputController;
     private Health _health;
-    private Trigger _invincible;
     private Sprite _lastHurtSprite;
     private Sprite _lastBlockSprite;
     private bool _hurtBoxActive;
     private bool _blockBoxActive;
     private float _nextBlockTime;
     private int _comboIndex;
-    private float _lastAttackEndTime;
-    private float _nextAttackTime;
+    private List<GameplayAction> _currentCombo;
     private GameplayAction _currentAction;
     private readonly List<Vector2> _points = new();
  
@@ -69,7 +69,11 @@ public class PlayerController : MonoBehaviour {
             SwitchState(new JumpState(gameObject));
         }
  
-        if (_currentState is JumpState && !_inputController.IsJumping && IsGrounded) {
+        if (_currentState is JumpState { HasLeftGround: true } && IsGrounded) {
+            SwitchState(new LandState(gameObject, _landDuration));
+        }
+ 
+        if (_currentState is LandState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));
         }
  
@@ -78,12 +82,18 @@ public class PlayerController : MonoBehaviour {
             SwitchState(new BlockState(gameObject, _blockDuration));
         }
  
-        if (_currentState is MoveState && _inputController.IsAttacking.Value && _comboActions.Count > 0
-            && Time.time >= _nextAttackTime) {
-            SwitchState(new AttackState(gameObject, NextComboAction()));
+        if (_currentState is MoveState) {
+            if (_inputController.IsAttacking.Value) StartCombo(_comboActions);
+            else if (_inputController.IsPunching.Value) StartCombo(_punchActions);
+            else if (_inputController.IsKicking.Value) StartCombo(_kickActions);
         }
  
-        if (_currentState is AttackState { IsFinished: true }) {
+        if (_currentState is AttackState { CanCombo: true } && IsComboButtonPressed()
+            && _comboIndex < _currentCombo.Count) {
+            StartAttack(_comboIndex);
+        }
+ 
+        if (_currentState is AttackState { IsOver: true }) {
             SwitchState(new MoveState(gameObject));
         }
  
@@ -96,6 +106,26 @@ public class PlayerController : MonoBehaviour {
         }
     }
  
+    private void StartCombo(List<GameplayAction> combo) {
+        if (combo == null || combo.Count == 0) return;
+ 
+        _currentCombo = combo;
+        StartAttack(0);
+    }
+ 
+    private bool IsComboButtonPressed() {
+        if (_currentCombo == _comboActions) return _inputController.IsAttacking.Value;
+        if (_currentCombo == _punchActions) return _inputController.IsPunching.Value;
+        if (_currentCombo == _kickActions) return _inputController.IsKicking.Value;
+        return false;
+    }
+ 
+    private void StartAttack(int index) {
+        _currentAction = _currentCombo[index];
+        _comboIndex = index + 1;
+        SwitchState(new AttackState(gameObject, _currentAction));
+    }
+ 
     private void SwitchState(State state) {
         _currentState?.OnExit();
         _currentState = state;
@@ -104,23 +134,24 @@ public class PlayerController : MonoBehaviour {
  
     private void OnTriggerEnter2D(Collider2D other) {
         if (!other.CompareTag("HurtBox")) return;
-        if (_invincible.Value || _currentState is DeadState) return;
+        if (_currentState is DeadState) return;
  
         PlayerController attacker = other.GetComponentInParent<PlayerController>();
         if (attacker == null || attacker == this) return;
+        if (!attacker.TryRegisterTarget(this)) return;
  
         TakeHit(attacker, other);
     }
  
     private void TakeHit(PlayerController attacker, Collider2D attackerHurtBox) {
-        _invincible.Launch();
- 
         float side = Mathf.Sign(transform.position.x - attacker.transform.position.x);
  
         if (IsBlocking(attackerHurtBox)) {
             _rigidbody2D.linearVelocity = new Vector2(side * _blockPushback, _rigidbody2D.linearVelocity.y);
             return;
         }
+ 
+        attacker.OnHitConnected();
  
         KnockbackDirection = new Vector2(side, 0.4f).normalized;
  
@@ -137,21 +168,32 @@ public class PlayerController : MonoBehaviour {
         return distance.isValid && distance.isOverlapped;
     }
  
-    private GameplayAction NextComboAction() {
-        if (Time.time - _lastAttackEndTime > _comboResetTime) _comboIndex = 0;
+    public void Kill() {
+        if (_currentState is DeadState) return;
  
-        _currentAction = _comboActions[_comboIndex];
-        _comboIndex = (_comboIndex + 1) % _comboActions.Count;
- 
-        return _currentAction;
+        _health.TakeDamage(_health.Current);
+        SwitchState(new DeadState(gameObject));
     }
  
-    public void OnComboActionFinished() {
-        _lastAttackEndTime = Time.time;
-        _nextAttackTime = Time.time + _currentAction.Recovery;
+    public bool TryRegisterTarget(PlayerController target) {
+        return _currentState is AttackState attack && attack.TryRegisterTarget(target);
+    }
+ 
+    public void OnHitConnected() {
+        if (_currentState is AttackState attack) attack.RegisterHit();
+    }
+ 
+    public void OnComboWindowOpen() {
+        if (_currentState is AttackState attack) attack.OpenComboWindow();
+    }
+ 
+    public void OnComboWindowClose() {
+        if (_currentState is AttackState attack) attack.CloseComboWindow();
     }
  
     public void OnAttackActive() {
+        if (_currentState is not AttackState) return;
+ 
         _hurtBoxActive = true;
         _lastHurtSprite = null;
         _hurtBox.enabled = true;

@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour {
 
     [SerializeField] private Health[] _players;
+    [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private float _restartDelay = 3f;
 
     private bool _isOver;

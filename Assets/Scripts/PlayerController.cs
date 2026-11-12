@@ -65,17 +65,20 @@ public class PlayerController : MonoBehaviour {
     private void Update() {
         _currentState.OnUpdate();
  
-        if (_currentState is MoveState && _inputController.IsJumping && IsGrounded) {
+        if (_currentState is MoveState or LandState && _inputController.JumpPressed.Value && IsGrounded) {
             SwitchState(new JumpState(gameObject));
         }
  
-        if (_currentState is JumpState { HasLeftGround: true } && IsGrounded) {
-            SwitchState(new FallState(gameObject, _landDuration));
+        if (_currentState is JumpState { HasLeftGround: true } && _rigidbody2D.linearVelocity.y <= 0f) {
+            SwitchState(new FallState(gameObject));
         }
-
-        if (_currentState is FallState && IsGrounded)
-        {
-            SwitchState(new LandState(gameObject));
+ 
+        if (_currentState is MoveState && !IsGrounded) {
+            SwitchState(new FallState(gameObject));
+        }
+ 
+        if (_currentState is FallState && IsGrounded) {
+            SwitchState(new LandState(gameObject, _landDuration));
         }
  
         if (_currentState is LandState { IsFinished: true }) {

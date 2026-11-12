@@ -5,6 +5,7 @@ public class InputController : MonoBehaviour {
 
         public Vector2 Move;
         public bool IsJumping;
+        public Trigger JumpPressed;
         public Trigger IsAttacking;
         public Trigger IsPunching;
         public Trigger IsKicking;
@@ -16,6 +17,7 @@ public class InputController : MonoBehaviour {
  
         public void OnJump(InputValue value) {
                 IsJumping = value.isPressed;
+                if (value.isPressed) JumpPressed.Launch();
         }
  
         public void OnAttack(InputValue value) {

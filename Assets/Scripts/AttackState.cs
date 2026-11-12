@@ -27,7 +27,6 @@ public class AttackState : State {
             new Vector2(0f, PlayerController.Rigidbody2D.linearVelocity.y);
  
         if (!Animator.HasState(0, Animator.StringToHash(_action.AnimationState))) {
-            Debug.LogError("L'Animator n'a pas d'état nommé '" + _action.AnimationState + "' (attaque " + _action.name + ")");
             IsOver = true;
             return;
         }

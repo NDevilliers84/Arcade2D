@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
 
-public class Health : MonoBehaviour {
+public class Health : MonoBehaviour 
+{
 
     [SerializeField] private int _maxHealth = 100;
 

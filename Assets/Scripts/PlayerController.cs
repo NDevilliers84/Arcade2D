@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
     
-     [SerializeField] private float _speed;
+    [SerializeField] private float _speed;
     [SerializeField] private float _airControl;
     [SerializeField] private float _jumpForce;
     [SerializeField] private float _groundCheckDistance;
@@ -70,7 +70,12 @@ public class PlayerController : MonoBehaviour {
         }
  
         if (_currentState is JumpState { HasLeftGround: true } && IsGrounded) {
-            SwitchState(new LandState(gameObject, _landDuration));
+            SwitchState(new FallState(gameObject, _landDuration));
+        }
+
+        if (_currentState is FallState && IsGrounded)
+        {
+            SwitchState(new LandState(gameObject));
         }
  
         if (_currentState is LandState { IsFinished: true }) {
@@ -175,19 +180,19 @@ public class PlayerController : MonoBehaviour {
         SwitchState(new DeadState(gameObject));
     }
  
-    public bool TryRegisterTarget(PlayerController target) {
+    private bool TryRegisterTarget(PlayerController target) {
         return _currentState is AttackState attack && attack.TryRegisterTarget(target);
     }
  
-    public void OnHitConnected() {
+    private void OnHitConnected() {
         if (_currentState is AttackState attack) attack.RegisterHit();
     }
  
-    public void OnComboWindowOpen() {
+    private void OnComboWindowOpen() {
         if (_currentState is AttackState attack) attack.OpenComboWindow();
     }
  
-    public void OnComboWindowClose() {
+    private void OnComboWindowClose() {
         if (_currentState is AttackState attack) attack.CloseComboWindow();
     }
  

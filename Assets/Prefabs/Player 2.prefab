@@ -262,7 +262,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _speed: 10
   _airControl: 3
-  _jumpForce: 20
+  _jumpForce: 17
   _groundCheckDistance: 0.5
   _groundLayer:
     serializedVersion: 2

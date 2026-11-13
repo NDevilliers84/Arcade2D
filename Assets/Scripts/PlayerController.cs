@@ -80,14 +80,6 @@ public class PlayerController : MonoBehaviour {
         if (_currentState is FallState && IsGrounded) {
             SwitchState(new LandState(gameObject, _landDuration));
         }
-        // if (_currentState is JumpState { HasLeftGround: true } && IsGrounded) {
-        //     SwitchState(new FallState(gameObject, _landDuration));
-        // }
-        //
-        // if (_currentState is FallState && IsGrounded)
-        // {
-        //     SwitchState(new LandState(gameObject));
-        // }
  
         if (_currentState is LandState { IsFinished: true }) {
             SwitchState(new MoveState(gameObject));

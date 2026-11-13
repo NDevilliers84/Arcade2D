@@ -10,9 +10,12 @@ public class JumpState : State {
         base.OnEnter();
  
         HasLeftGround = false;
+        InputController.JumpPressed.Stop();
  
         Animator.SetBool("IsJumping", true);
         Animator.Play("Jump", 0, 0f);
+        PlayerController.Rigidbody2D.linearVelocity =
+            new Vector2(PlayerController.Rigidbody2D.linearVelocity.x, 0f);
         PlayerController.Rigidbody2D.AddForce(Vector2.up * PlayerController.JumpForce, ForceMode2D.Impulse);
     }
  
